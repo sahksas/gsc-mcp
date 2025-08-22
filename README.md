@@ -55,39 +55,35 @@ Google Search Console API を MCP (Model Context Protocol) サーバーとして
 
 ### 2. 認証設定
 
-プロジェクトのルートに認証情報を配置：
+認証情報を配置（使用するプロジェクトのルートディレクトリなど）：
 ```bash
-cp /path/to/service-account-key.json ./credentials.json
+cp /path/to/downloaded-key.json ./credentials.json
 ```
 
-> ⚠️ **重要**: `credentials.json` は `.gitignore` に登録済みのため、誤ってコミットされることはありません
+> ⚠️ **重要**: `credentials.json` を配置したディレクトリの `.gitignore` に必ず追加してください：
+> ```bash
+> echo "credentials.json" >> .gitignore
+> ```
 
-### 3. 利用方法
+### 3. インストールと設定
 
-#### 方法1: GitMCP 経由（推奨）
+#### リポジトリのクローン
+
+```bash
+git clone https://github.com/sahksas/gsc-mcp.git
+cd gsc-mcp
+npm install
+```
+
+#### 認証ファイルの配置
+
+ダウンロードした認証情報を適切な場所に配置します。例：
+- プロジェクトのルート: `./credentials.json`
+- または別の安全な場所: `~/credentials/gsc-credentials.json`
+
+### 4. MCP設定
 
 プロジェクトのルートに `.mcp.json` を作成：
-
-```json
-{
-  "mcpServers": {
-    "gsc-mcp": {
-      "command": "npx",
-      "args": [
-        "mcp-remote",
-        "https://gitmcp.io/sahksas/gsc-mcp"
-      ],
-      "env": {
-        "GOOGLE_APPLICATION_CREDENTIALS": "./credentials.json"
-      }
-    }
-  }
-}
-```
-
-#### 方法2: ローカル実行
-
-このリポジトリをクローンした場合：
 
 ```json
 {
@@ -98,6 +94,22 @@ cp /path/to/service-account-key.json ./credentials.json
       "cwd": "/path/to/gsc-mcp",
       "env": {
         "GOOGLE_APPLICATION_CREDENTIALS": "/path/to/credentials.json"
+      }
+    }
+  }
+}
+```
+
+**パスの例（実際のパスに置き換えてください）：**
+```json
+{
+  "mcpServers": {
+    "gsc-mcp": {
+      "command": "npx",
+      "args": ["tsx", "/home/user/gsc-mcp/src/index.ts"],
+      "cwd": "/home/user/gsc-mcp",
+      "env": {
+        "GOOGLE_APPLICATION_CREDENTIALS": "../your-project/credentials.json"
       }
     }
   }
@@ -185,7 +197,7 @@ Claude で以下のようなリクエストができます：
 ## トラブルシューティング
 
 - **認証エラー**: サービスアカウントが Search Console に追加されているか確認
-- **接続エラー**: `npx mcp-remote` が利用可能か確認
+- **接続エラー**: MCP 設定ファイル (.mcp.json) のパスが正しいか確認
 - **パスエラー**: 認証情報のパスが正しいか確認
 
 ## ライセンス

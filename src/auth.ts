@@ -5,27 +5,16 @@ import path from 'path';
 export class GoogleAuth {
   private oauth2Client: OAuth2Client | null = null;
   private credentialsPath: string;
-  private credentialsJson: string | null;
 
   constructor() {
     this.credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || 
                           path.join(process.cwd(), 'credentials.json');
-    this.credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON || null;
   }
 
   async initialize(): Promise<void> {
     try {
-      // JSON文字列が環境変数で提供されている場合はそれを使用
-      let credentialsContent: string;
-      let credentials: any;
-      
-      if (this.credentialsJson) {
-        credentialsContent = this.credentialsJson;
-        credentials = JSON.parse(credentialsContent);
-      } else {
-        credentialsContent = await readFile(this.credentialsPath, 'utf-8');
-        credentials = JSON.parse(credentialsContent);
-      }
+      const credentialsContent = await readFile(this.credentialsPath, 'utf-8');
+      const credentials = JSON.parse(credentialsContent);
 
       if (credentials.type === 'service_account') {
         const { GoogleAuth: ServiceAuth } = await import('google-auth-library');
