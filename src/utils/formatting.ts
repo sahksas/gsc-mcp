@@ -1,18 +1,27 @@
-export function formatSearchAnalyticsResults(data: any): string {
+import {
+  SearchAnalyticsResponse,
+  SearchAnalyticsRow,
+  SiteInfo,
+  SitemapInfo,
+  UrlInspectionResult,
+} from '../types/index.js';
+import { CONSTANTS } from '../constants.js';
+
+export function formatSearchAnalyticsResults(data: SearchAnalyticsResponse): string {
   if (!data.rows || data.rows.length === 0) {
-    return "No search analytics data found for the specified period.";
+    return CONSTANTS.MESSAGES.INFO.NO_DATA;
   }
 
-  const rows = data.rows.slice(0, 50);
+  const rows = data.rows.slice(0, CONSTANTS.LIMITS.DISPLAY_LIMIT);
   
   let result = `📊 **Search Analytics Results**\n\n`;
   result += `📈 **Summary:** ${data.rows.length} total results\n\n`;
   
-  if (data.rows.length > 50) {
-    result += `*Showing top 50 results*\n\n`;
+  if (data.rows.length > CONSTANTS.LIMITS.DISPLAY_LIMIT) {
+    result += `*Showing top ${CONSTANTS.LIMITS.DISPLAY_LIMIT} results*\n\n`;
   }
 
-  rows.forEach((row: any, index: number) => {
+  rows.forEach((row: SearchAnalyticsRow, index: number) => {
     const keys = row.keys || [];
     const clicks = row.clicks || 0;
     const impressions = row.impressions || 0;
@@ -29,9 +38,9 @@ export function formatSearchAnalyticsResults(data: any): string {
   return result;
 }
 
-export function formatSitesList(sites: any[]): string {
+export function formatSitesList(sites: SiteInfo[]): string {
   if (!sites || sites.length === 0) {
-    return "No sites found in your Search Console account.";
+    return CONSTANTS.MESSAGES.INFO.NO_SITES;
   }
 
   let result = `🌐 **Search Console Sites**\n\n`;
@@ -48,9 +57,9 @@ export function formatSitesList(sites: any[]): string {
   return result;
 }
 
-export function formatSitemapsList(sitemaps: any[]): string {
+export function formatSitemapsList(sitemaps: SitemapInfo[]): string {
   if (!sitemaps || sitemaps.length === 0) {
-    return "No sitemaps found for this site.";
+    return CONSTANTS.MESSAGES.INFO.NO_SITEMAPS;
   }
 
   let result = `🗺️ **Sitemaps**\n\n`;
@@ -76,9 +85,9 @@ export function formatSitemapsList(sitemaps: any[]): string {
   return result;
 }
 
-export function formatUrlInspection(inspection: any): string {
+export function formatUrlInspection(inspection: UrlInspectionResult): string {
   if (!inspection || !inspection.inspectionResult) {
-    return "No inspection data available for this URL.";
+    return CONSTANTS.MESSAGES.INFO.NO_INSPECTION_DATA;
   }
 
   const result = inspection.inspectionResult;
@@ -116,7 +125,7 @@ export function formatUrlInspection(inspection: any): string {
     const rich = result.richResultsResult;
     output += `**✨ Rich Results**\n`;
     if (rich.detectedItems && rich.detectedItems.length > 0) {
-      output += `   • Detected: ${rich.detectedItems.map((item: any) => item.richResultType).join(', ')}\n`;
+      output += `   • Detected: ${rich.detectedItems.map((item) => item.richResultType).join(', ')}\n`;
     } else {
       output += `   • No rich results detected\n`;
     }

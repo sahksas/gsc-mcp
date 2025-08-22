@@ -1,6 +1,7 @@
 import { OAuth2Client } from 'google-auth-library';
 import { readFile } from 'fs/promises';
 import path from 'path';
+import { CONSTANTS } from './constants.js';
 
 export class GoogleAuth {
   private oauth2Client: OAuth2Client | null = null;
@@ -20,8 +21,7 @@ export class GoogleAuth {
         const { GoogleAuth: ServiceAuth } = await import('google-auth-library');
         const serviceAuth = new ServiceAuth({
           credentials: credentials,
-          scopes: ['https://www.googleapis.com/auth/webmasters.readonly',
-                   'https://www.googleapis.com/auth/webmasters']
+          scopes: [...CONSTANTS.API.SCOPES]
         });
         this.oauth2Client = await serviceAuth.getClient() as OAuth2Client;
       } else if (credentials.web || credentials.installed) {
@@ -39,7 +39,7 @@ export class GoogleAuth {
           const token = JSON.parse(tokenContent);
           this.oauth2Client.setCredentials(token);
         } catch (error) {
-          throw new Error('Token file not found. Please run authentication flow first.');
+          throw new Error(CONSTANTS.MESSAGES.ERROR.TOKEN_NOT_FOUND);
         }
       }
     } catch (error) {
@@ -49,7 +49,7 @@ export class GoogleAuth {
 
   getClient(): OAuth2Client {
     if (!this.oauth2Client) {
-      throw new Error('Authentication not initialized');
+      throw new Error(CONSTANTS.MESSAGES.ERROR.AUTH_NOT_INITIALIZED);
     }
     return this.oauth2Client;
   }

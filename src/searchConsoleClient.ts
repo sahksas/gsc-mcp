@@ -1,28 +1,26 @@
 import { google, searchconsole_v1 } from 'googleapis';
 import { GoogleAuth } from './auth.js';
-
-export interface SearchAnalyticsQuery {
-  siteUrl: string;
-  startDate: string;
-  endDate: string;
-  dimensions?: string[];
-  dimensionFilterGroups?: any[];
-  aggregationType?: string;
-  rowLimit?: number;
-  startRow?: number;
-}
-
-export interface SiteInfo {
-  siteUrl: string;
-  permissionLevel?: string;
-}
+import {
+  SearchAnalyticsQuery,
+  AdvancedSearchAnalyticsQuery,
+  SiteInfo,
+  SearchAnalyticsResponse,
+  SitemapInfo,
+  UrlInspectionResult,
+  BatchInspectionResult,
+  SitemapIndexStatus,
+  NonIndexedUrlsResult,
+  NonIndexedUrlsSummary,
+  UrlIndexInfo,
+  UrlInspectionError,
+  FindNonIndexedUrlsOptions,
+} from './types/index.js';
+import { CONSTANTS } from './constants.js';
 
 export class SearchConsoleClient {
   private client: searchconsole_v1.Searchconsole;
-  private auth: GoogleAuth;
 
   constructor(auth: GoogleAuth) {
-    this.auth = auth;
     this.client = google.searchconsole({
       version: 'v1',
       auth: auth.getClient()
@@ -54,7 +52,7 @@ export class SearchConsoleClient {
     }
   }
 
-  async querySearchAnalytics(query: SearchAnalyticsQuery): Promise<any> {
+  async querySearchAnalytics(query: SearchAnalyticsQuery): Promise<SearchAnalyticsResponse> {
     try {
       const response = await this.client.searchanalytics.query({
         siteUrl: query.siteUrl,
@@ -64,32 +62,32 @@ export class SearchConsoleClient {
           dimensions: query.dimensions,
           dimensionFilterGroups: query.dimensionFilterGroups,
           aggregationType: query.aggregationType,
-          rowLimit: query.rowLimit || 1000,
+          rowLimit: query.rowLimit || CONSTANTS.LIMITS.DEFAULT_ROW_LIMIT,
           startRow: query.startRow || 0
         }
-      } as any);
-      return response.data;
+      });
+      return response.data as SearchAnalyticsResponse;
     } catch (error) {
       throw new Error(`Failed to query search analytics: ${error}`);
     }
   }
 
-  async listSitemaps(siteUrl: string): Promise<any[]> {
+  async listSitemaps(siteUrl: string): Promise<SitemapInfo[]> {
     try {
       const response = await this.client.sitemaps.list({ siteUrl });
-      return response.data.sitemap || [];
+      return (response.data.sitemap || []) as SitemapInfo[];
     } catch (error) {
       throw new Error(`Failed to list sitemaps: ${error}`);
     }
   }
 
-  async getSitemap(siteUrl: string, feedpath: string): Promise<any> {
+  async getSitemap(siteUrl: string, feedpath: string): Promise<SitemapInfo> {
     try {
       const response = await this.client.sitemaps.get({ 
         siteUrl, 
         feedpath 
       });
-      return response.data;
+      return response.data as SitemapInfo;
     } catch (error) {
       throw new Error(`Failed to get sitemap: ${error}`);
     }
@@ -117,7 +115,7 @@ export class SearchConsoleClient {
     }
   }
 
-  async inspectUrl(siteUrl: string, inspectionUrl: string): Promise<any> {
+  async inspectUrl(siteUrl: string, inspectionUrl: string): Promise<UrlInspectionResult> {
     try {
       const response = await this.client.urlInspection.index.inspect({
         requestBody: {
@@ -125,7 +123,7 @@ export class SearchConsoleClient {
           inspectionUrl
         }
       });
-      return response.data;
+      return response.data as UrlInspectionResult;
     } catch (error) {
       throw new Error(`Failed to inspect URL: ${error}`);
     }
@@ -147,45 +145,41 @@ export class SearchConsoleClient {
     }
   }
 
-  async batchInspectUrls(siteUrl: string, urls: string[]): Promise<any[]> {
+  async batchInspectUrls(siteUrl: string, urls: string[]): Promise<BatchInspectionResult[]> {
     const results = [];
     for (const url of urls) {
       try {
         const result = await this.inspectUrl(siteUrl, url);
         results.push({
           url,
-          status: 'success',
+          status: 'success' as const,
           data: result
         });
       } catch (error) {
         results.push({
           url,
-          status: 'error',
+          status: 'error' as const,
           error: error instanceof Error ? error.message : 'Unknown error'
         });
       }
-      // APIレート制限を考慮して少し待機
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, CONSTANTS.API.RATE_LIMIT_DELAY));
     }
     return results;
   }
 
-  async checkSitemapIndexStatus(siteUrl: string, sitemapUrl: string): Promise<any> {
+  async checkSitemapIndexStatus(siteUrl: string, sitemapUrl: string): Promise<SitemapIndexStatus> {
     try {
-      // サイトマップの情報を取得
       const sitemap = await this.getSitemap(siteUrl, sitemapUrl);
       
-      // サイトマップからURLリストを取得（実際にはAPI経由では直接取得できないため、
-      // ここでは概要情報のみ返す。実装では外部でサイトマップをフェッチして処理）
-      const result = {
+      const result: SitemapIndexStatus = {
         sitemapUrl,
-        lastSubmitted: sitemap.lastSubmitted,
-        lastDownloaded: sitemap.lastDownloaded,
-        isPending: sitemap.isPending,
-        isSitemapsIndex: sitemap.isSitemapsIndex,
-        errors: sitemap.errors,
-        warnings: sitemap.warnings,
-        contents: sitemap.contents || [],
+        lastSubmitted: sitemap.lastSubmitted ?? undefined,
+        lastDownloaded: sitemap.lastDownloaded ?? undefined,
+        isPending: sitemap.isPending ?? undefined,
+        isSitemapsIndex: sitemap.isSitemapsIndex ?? undefined,
+        errors: sitemap.errors ?? undefined,
+        warnings: sitemap.warnings ?? undefined,
+        contents: sitemap.contents ?? [],
         note: 'To check index status of all URLs in sitemap, use batch_inspect_sitemap_urls tool'
       };
       
@@ -195,34 +189,31 @@ export class SearchConsoleClient {
     }
   }
 
-  async querySearchAnalyticsAdvanced(query: any): Promise<any> {
+  async querySearchAnalyticsAdvanced(query: AdvancedSearchAnalyticsQuery): Promise<SearchAnalyticsResponse> {
     try {
-      // 高度なフィルタリング機能を追加
-      const requestBody: any = {
+      const requestBody: searchconsole_v1.Schema$SearchAnalyticsQueryRequest = {
         startDate: query.startDate,
         endDate: query.endDate,
         dimensions: query.dimensions,
         dimensionFilterGroups: query.dimensionFilterGroups || [],
         aggregationType: query.aggregationType,
-        rowLimit: query.rowLimit || 1000,
+        rowLimit: query.rowLimit || CONSTANTS.LIMITS.DEFAULT_ROW_LIMIT,
         startRow: query.startRow || 0,
-        dataState: query.dataState // 'final' or 'all'
+        dataState: query.dataState
       };
 
-      // 検索タイプフィルター
       if (query.searchType) {
-        requestBody.searchType = query.searchType; // 'web', 'image', 'video', 'news'
+        requestBody.searchType = query.searchType;
       }
 
-      // 複雑なフィルター条件の構築
       if (query.filters) {
         const filterGroups = [];
         for (const filter of query.filters) {
           filterGroups.push({
             groupType: filter.groupType || 'and',
-            filters: filter.conditions.map((condition: any) => ({
+            filters: filter.conditions.map((condition) => ({
               dimension: condition.dimension,
-              operator: condition.operator, // 'equals', 'contains', 'notContains', 'notEquals'
+              operator: condition.operator,
               expression: condition.expression
             }))
           });
@@ -233,9 +224,9 @@ export class SearchConsoleClient {
       const response = await this.client.searchanalytics.query({
         siteUrl: query.siteUrl,
         requestBody
-      } as any);
+      });
       
-      return response.data;
+      return response.data as SearchAnalyticsResponse;
     } catch (error) {
       throw new Error(`Failed to query advanced search analytics: ${error}`);
     }
@@ -275,18 +266,17 @@ export class SearchConsoleClient {
     return [];
   }
 
-  async findNonIndexedUrls(siteUrl: string, options?: {
-    useSitemaps?: boolean;
-    sampleSize?: number;
-    checkReasons?: boolean;
-  }): Promise<any> {
-    const results = {
+  async findNonIndexedUrls(
+    siteUrl: string,
+    options?: FindNonIndexedUrlsOptions
+  ): Promise<NonIndexedUrlsResult> {
+    const results: NonIndexedUrlsResult = {
       siteUrl,
       totalUrlsChecked: 0,
-      indexedUrls: [] as any[],
-      nonIndexedUrls: [] as any[],
-      errors: [] as any[],
-      summary: {} as any,
+      indexedUrls: [] as UrlIndexInfo[],
+      nonIndexedUrls: [] as UrlIndexInfo[],
+      errors: [] as UrlInspectionError[],
+      summary: {} as NonIndexedUrlsSummary,
       timestamp: new Date().toISOString()
     };
 
@@ -311,21 +301,10 @@ export class SearchConsoleClient {
           (analyticsData.rows || []).map((row: any) => row.keys?.[0]).filter(Boolean)
         );
         
-        // For demonstration, we'll create a sample URL list
-        // In production, you'd fetch and parse actual sitemap XML
         if (sitemaps.length > 0) {
-          // Extract sample URLs based on sitemap paths
-          const sampleUrls: string[] = [];
-          for (const sitemap of sitemaps.slice(0, 3)) {
-            // This is where you'd actually fetch and parse the sitemap
-            // For now, we'll note that the sitemap should be processed
-            results.summary.sitemapsFound = sitemaps.length;
-            results.summary.sitemapsProcessed = Math.min(3, sitemaps.length);
-          }
+          results.summary.sitemapsFound = sitemaps.length;
+          results.summary.sitemapsProcessed = Math.min(3, sitemaps.length);
         }
-
-        // Create a list of URLs to check (for demo, use base variations)
-        const baseUrl = new URL(siteUrl);
         urlsToCheck = [
           siteUrl,
           `${siteUrl}about/`,
@@ -339,7 +318,7 @@ export class SearchConsoleClient {
 
       // Step 2: Batch inspect URLs
       if (urlsToCheck.length > 0) {
-        const sampleSize = options?.sampleSize || 50;
+        const sampleSize = options?.sampleSize || CONSTANTS.LIMITS.DEFAULT_SAMPLE_SIZE;
         const urlsToInspect = urlsToCheck.slice(0, sampleSize);
         
         console.log(`Inspecting ${urlsToInspect.length} URLs...`);
@@ -352,23 +331,23 @@ export class SearchConsoleClient {
           if (result.status === 'error') {
             results.errors.push({
               url: result.url,
-              error: result.error
+              error: result.error || ''
             });
             continue;
           }
           
           const indexStatus = result.data?.inspectionResult?.indexStatusResult;
-          const isIndexed = indexStatus?.indexingState === 'INDEXED';
+          const isIndexed = indexStatus?.indexingState === CONSTANTS.STATUS.INDEXED;
           
-          const urlInfo: any = {
+          const urlInfo: UrlIndexInfo = {
             url: result.url,
-            indexingState: indexStatus?.indexingState || 'UNKNOWN',
-            coverageState: indexStatus?.coverageState || 'UNKNOWN',
-            lastCrawlTime: indexStatus?.lastCrawlTime,
-            pageFetchState: indexStatus?.pageFetchState,
-            verdict: indexStatus?.verdict,
-            robotsTxtState: indexStatus?.robotsTxtState,
-            crawledAs: indexStatus?.crawledAs
+            indexingState: indexStatus?.indexingState || CONSTANTS.STATUS.UNKNOWN,
+            coverageState: indexStatus?.coverageState || CONSTANTS.STATUS.UNKNOWN,
+            lastCrawlTime: indexStatus?.lastCrawlTime ?? undefined,
+            pageFetchState: indexStatus?.pageFetchState ?? undefined,
+            verdict: indexStatus?.verdict ?? undefined,
+            robotsTxtState: indexStatus?.robotsTxtState ?? undefined,
+            crawledAs: indexStatus?.crawledAs ?? undefined
           };
           
           if (isIndexed) {

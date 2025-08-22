@@ -1,4 +1,5 @@
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import { CONSTANTS } from '../constants.js';
 
 export class SearchConsoleError extends Error {
   constructor(
@@ -29,32 +30,32 @@ export function handleError(error: unknown, toolName: string): never {
     if (errorAny?.response?.status === 403) {
       throw new McpError(
         ErrorCode.InvalidRequest,
-        'Permission denied. Make sure you have the necessary permissions for this Search Console property.'
+        CONSTANTS.MESSAGES.ERROR.PERMISSION_DENIED
       );
     }
     
     if (errorAny?.response?.status === 404) {
       throw new McpError(
         ErrorCode.InvalidRequest,
-        'Resource not found. Please check the URL or resource identifier.'
+        CONSTANTS.MESSAGES.ERROR.RESOURCE_NOT_FOUND
       );
     }
     
     if (errorAny?.response?.status === 400) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        errorAny?.response?.data?.error?.message || 'Invalid request parameters.'
+        errorAny?.response?.data?.error?.message || CONSTANTS.MESSAGES.ERROR.INVALID_PARAMS
       );
     }
 
     throw new McpError(
       ErrorCode.InternalError,
-      error.message || 'An unexpected error occurred'
+      error.message || CONSTANTS.MESSAGES.ERROR.UNEXPECTED_ERROR
     );
   }
 
   throw new McpError(
     ErrorCode.InternalError,
-    'An unknown error occurred'
+    CONSTANTS.MESSAGES.ERROR.UNKNOWN_ERROR
   );
 }

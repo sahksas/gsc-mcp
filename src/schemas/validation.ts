@@ -1,7 +1,5 @@
 import { z } from 'zod';
-
-// Date validation helper
-const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+import { CONSTANTS } from '../constants.js';
 
 export const SiteUrlSchema = z.object({
   siteUrl: z.string().min(1, 'Site URL is required')
@@ -9,15 +7,15 @@ export const SiteUrlSchema = z.object({
 
 export const SearchAnalyticsSchema = z.object({
   siteUrl: z.string().min(1, 'Site URL is required'),
-  startDate: z.string().regex(dateRegex, 'Date must be in YYYY-MM-DD format'),
-  endDate: z.string().regex(dateRegex, 'Date must be in YYYY-MM-DD format'),
+  startDate: z.string().regex(CONSTANTS.DATE_FORMAT.REGEX, 'Date must be in YYYY-MM-DD format'),
+  endDate: z.string().regex(CONSTANTS.DATE_FORMAT.REGEX, 'Date must be in YYYY-MM-DD format'),
   dimensions: z.array(
     z.enum(['query', 'page', 'country', 'device', 'searchAppearance', 'date'])
   ).optional(),
   metrics: z.array(
     z.enum(['clicks', 'impressions', 'ctr', 'position'])
   ).optional(),
-  rowLimit: z.number().min(1).max(25000).optional().default(1000),
+  rowLimit: z.number().min(1).max(CONSTANTS.LIMITS.MAX_ROW_LIMIT).optional().default(CONSTANTS.LIMITS.DEFAULT_ROW_LIMIT),
   startRow: z.number().min(0).optional().default(0),
   aggregationType: z.enum(['auto', 'byPage', 'byProperty']).optional()
 });
@@ -46,9 +44,8 @@ export function validateDateRange(startDate: string, endDate: string): void {
     throw new Error('End date cannot be in the future');
   }
   
-  // Search Console API limitation: max 16 months of data
   const maxPastDate = new Date();
-  maxPastDate.setMonth(maxPastDate.getMonth() - 16);
+  maxPastDate.setMonth(maxPastDate.getMonth() - CONSTANTS.API.MAX_PAST_MONTHS);
   
   if (start < maxPastDate) {
     throw new Error('Start date cannot be more than 16 months in the past');
