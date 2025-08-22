@@ -1,0 +1,16 @@
+node_modules/
+build/
+dist/
+*.log
+.env
+.env.local
+credentials.json
+token.json
+*.key
+*.pem
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

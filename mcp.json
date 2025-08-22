@@ -1,0 +1,182 @@
+{
+  "name": "gsc-mcp",
+  "version": "1.0.0",
+  "description": "Google Search Console MCP Server - Access and manage Google Search Console data through MCP",
+  "author": "sahksas",
+  "repository": "https://github.com/sahksas/gsc-mcp",
+  "license": "MIT",
+  "capabilities": {
+    "tools": true,
+    "resources": false,
+    "prompts": false
+  },
+  "tools": [
+    {
+      "name": "list_sites",
+      "description": "List all sites in your Google Search Console account with their permission levels",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "get_site",
+      "description": "Get detailed information about a specific site in Search Console",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "siteUrl": {
+            "type": "string",
+            "description": "The URL of the site (e.g., https://example.com/ or sc-domain:example.com)"
+          }
+        },
+        "required": ["siteUrl"]
+      }
+    },
+    {
+      "name": "query_search_analytics",
+      "description": "Query comprehensive search analytics data including clicks, impressions, CTR, and average position",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "siteUrl": {
+            "type": "string",
+            "description": "The URL of the site"
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Start date in YYYY-MM-DD format (max 16 months ago)"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "End date in YYYY-MM-DD format"
+          },
+          "dimensions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["query", "page", "country", "device", "searchAppearance", "date"]
+            },
+            "description": "Dimensions to group results by"
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["clicks", "impressions", "ctr", "position"]
+            },
+            "description": "Metrics to include in the results"
+          },
+          "rowLimit": {
+            "type": "number",
+            "description": "Maximum number of rows to return (default: 1000, max: 25000)"
+          },
+          "startRow": {
+            "type": "number",
+            "description": "Starting row for pagination (default: 0)"
+          }
+        },
+        "required": ["siteUrl", "startDate", "endDate"]
+      }
+    },
+    {
+      "name": "list_sitemaps",
+      "description": "List all sitemaps submitted for a site with their status",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "siteUrl": {
+            "type": "string",
+            "description": "The URL of the site"
+          }
+        },
+        "required": ["siteUrl"]
+      }
+    },
+    {
+      "name": "get_sitemap",
+      "description": "Get detailed information about a specific sitemap",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "siteUrl": {
+            "type": "string",
+            "description": "The URL of the site"
+          },
+          "feedpath": {
+            "type": "string",
+            "description": "The path to the sitemap"
+          }
+        },
+        "required": ["siteUrl", "feedpath"]
+      }
+    },
+    {
+      "name": "submit_sitemap",
+      "description": "Submit a new sitemap to Google Search Console",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "siteUrl": {
+            "type": "string",
+            "description": "The URL of the site"
+          },
+          "feedpath": {
+            "type": "string",
+            "description": "The URL of the sitemap to submit"
+          }
+        },
+        "required": ["siteUrl", "feedpath"]
+      }
+    },
+    {
+      "name": "delete_sitemap",
+      "description": "Delete a sitemap from Google Search Console",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "siteUrl": {
+            "type": "string",
+            "description": "The URL of the site"
+          },
+          "feedpath": {
+            "type": "string",
+            "description": "The path to the sitemap to delete"
+          }
+        },
+        "required": ["siteUrl", "feedpath"]
+      }
+    },
+    {
+      "name": "inspect_url",
+      "description": "Inspect a URL to see how Google sees it, including index status, mobile usability, and rich results",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "siteUrl": {
+            "type": "string",
+            "description": "The URL of the site"
+          },
+          "inspectionUrl": {
+            "type": "string",
+            "description": "The URL to inspect"
+          }
+        },
+        "required": ["siteUrl", "inspectionUrl"]
+      }
+    }
+  ],
+  "environment": {
+    "required": ["GOOGLE_APPLICATION_CREDENTIALS"],
+    "optional": ["GOOGLE_TOKEN_PATH"]
+  },
+  "setup": {
+    "steps": [
+      "Create a Google Cloud Project and enable Search Console API",
+      "Create a service account and download JSON key",
+      "Add service account to Search Console properties",
+      "Set GOOGLE_APPLICATION_CREDENTIALS environment variable"
+    ]
+  }
+}
